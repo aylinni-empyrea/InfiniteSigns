@@ -1,14 +1,12 @@
-﻿using System;
+﻿using Mono.Data.Sqlite;
+using MySql.Data.MySqlClient;
+using System;
 using System.Collections.Generic;
-using System.ComponentModel;
 using System.Data;
 using System.IO;
 using System.Linq;
 using System.Reflection;
-using System.Text;
 using System.Threading.Tasks;
-using Mono.Data.Sqlite;
-using MySql.Data.MySqlClient;
 using Terraria;
 using Terraria.ID;
 using TerrariaApi.Server;
@@ -17,7 +15,7 @@ using TShockAPI.DB;
 
 namespace InfiniteSigns
 {
-	[ApiVersion(1, 16)]
+    [ApiVersion(1, 20)]
 	public class InfiniteSigns : TerrariaPlugin
 	{
 		public IDbConnection Database;
@@ -75,6 +73,27 @@ namespace InfiniteSigns
 				{
 					switch (e.MsgID)
 					{
+                        case PacketTypes.PlaceObject:
+                            {
+                                int x = reader.ReadInt16();
+                                int y = reader.ReadInt16();
+                                ushort type = reader.ReadUInt16();
+                                if (type == 55)
+                                {
+                                    if (TShock.Regions.CanBuild(x, y, TShock.Players[e.Msg.whoAmI]))
+                                    {
+                                        WorldGen.PlaceSign(x, y, type);
+                                        NetMessage.SendData(79, -1, e.Msg.whoAmI, "", 1, x, y, type);
+                                        if (Main.tile[x, y].frameY != 0)
+                                            y--;
+                                        if (Main.tile[x, y].frameX % 36 != 0)
+                                            x--;
+                                        Task.Factory.StartNew(() => PlaceSign(x, y, e.Msg.whoAmI));
+                                        e.Handled = true;
+                                    }
+                                }
+                            }
+                            break;
 						case PacketTypes.SignNew:
 							{
 								reader.ReadInt16();
@@ -111,20 +130,22 @@ namespace InfiniteSigns
 										e.Handled = true;
 									}
 								}
-								else if (action == 1 && (type == 55 || type == 85))
-								{
-									if (TShock.Regions.CanBuild(x, y, TShock.Players[e.Msg.whoAmI]))
-									{
-										WorldGen.PlaceSign(x, y, type);
-										NetMessage.SendData(17, -1, e.Msg.whoAmI, "", 1, x, y, type);
-										if (Main.tile[x, y].frameY != 0)
-											y--;
-										if (Main.tile[x, y].frameX % 36 != 0)
-											x--;
-										Task.Factory.StartNew(() => PlaceSign(x, y, e.Msg.whoAmI));
-										e.Handled = true;
-									}
-								}
+                                //Uses placeobject instead
+
+								//else if (action == 1 && (type == 55 || type == 85))
+								//{
+								//	if (TShock.Regions.CanBuild(x, y, TShock.Players[e.Msg.whoAmI]))
+								//	{
+								//		WorldGen.PlaceSign(x, y, type);
+								//		NetMessage.SendData(17, -1, e.Msg.whoAmI, "", 1, x, y, type);
+								//		if (Main.tile[x, y].frameY != 0)
+								//			y--;
+								//		if (Main.tile[x, y].frameX % 36 != 0)
+								//			x--;
+								//		Task.Factory.StartNew(() => PlaceSign(x, y, e.Msg.whoAmI));
+								//		e.Handled = true;
+								//	}
+								//}
 							}
 							break;
 					}
@@ -209,7 +230,7 @@ namespace InfiniteSigns
 			}
 			SqlTableCreator sqlcreator = new SqlTableCreator(Database,
 				Database.GetSqlType() == SqlType.Sqlite ? (IQueryBuilder)new SqliteQueryCreator() : new MysqlQueryCreator());
-			sqlcreator.EnsureExists(new SqlTable("Signs",
+			sqlcreator.EnsureTableStructure(new SqlTable("Signs",
 				new SqlColumn("ID", MySqlDbType.Int32) { AutoIncrement = true, Primary = true },
 				new SqlColumn("X", MySqlDbType.Int32),
 				new SqlColumn("Y", MySqlDbType.Int32),
@@ -238,7 +259,7 @@ namespace InfiniteSigns
 			if (converted > 0)
 			{
 				TSPlayer.Server.SendSuccessMessage("[InfiniteSigns] Converted {0} sign{1}.", converted, converted == 1 ? "" : "s");
-				WorldFile.saveWorld();
+                TShock.Utils.SaveWorld();
 			}
 		}
 
@@ -275,7 +296,7 @@ namespace InfiniteSigns
 							player.SendErrorMessage("This sign is protected.");
 							break;
 						}
-						Database.Query("UPDATE Signs SET Account = @0 WHERE ID = @1", player.UserAccountName, sign.ID);
+						Database.Query("UPDATE Signs SET Account = @0 WHERE ID = @1", player.User.Name, sign.ID);
 						player.SendInfoMessage("This sign is now protected.");
 						break;
 					case SignAction.SetPassword:
@@ -284,7 +305,7 @@ namespace InfiniteSigns
 							player.SendErrorMessage("This sign is not protected.");
 							break;
 						}
-						if (sign.Account != player.UserAccountName && !player.Group.HasPermission("infsigns.admin.editall"))
+						if (sign.Account != player.User.Name && !player.Group.HasPermission("infsigns.admin.editall"))
 						{
 							player.SendErrorMessage("This sign is not yours.");
 							break;
@@ -296,7 +317,7 @@ namespace InfiniteSigns
 						}
 						else
 						{
-							Database.Query("UPDATE Signs SET Password = @0 WHERE ID = @1", TShock.Utils.HashPassword(info.Password), sign.ID);
+							Database.Query("UPDATE Signs SET Password = @0 WHERE ID = @1", BCrypt.Net.BCrypt.HashPassword(info.Password), sign.ID);
 							player.SendSuccessMessage("This sign is now password protected with password '{0}'.", info.Password);
 						}
 						break;
@@ -306,7 +327,7 @@ namespace InfiniteSigns
 							player.SendErrorMessage("This sign is not protected.");
 							break;
 						}
-						if (sign.Account != player.UserAccountName && !player.Group.HasPermission("infsigns.admin.editall"))
+						if (sign.Account != player.User.Name && !player.Group.HasPermission("infsigns.admin.editall"))
 						{
 							player.SendErrorMessage("This sign is not yours.");
 							break;
@@ -320,7 +341,7 @@ namespace InfiniteSigns
 							player.SendErrorMessage("This sign is not protected.");
 							break;
 						}
-						if (sign.Account != player.UserAccountName && !player.Group.HasPermission("infsigns.admin.editall"))
+						if (sign.Account != player.User.Name && !player.Group.HasPermission("infsigns.admin.editall"))
 						{
 							player.SendErrorMessage("This sign is not yours.");
 							break;
@@ -334,7 +355,7 @@ namespace InfiniteSigns
 							player.SendErrorMessage("This sign is not protected.");
 							break;
 						}
-						if (sign.Account != player.UserAccountName && !player.Group.HasPermission("infsigns.admin.editall"))
+						if (sign.Account != player.User.Name && !player.Group.HasPermission("infsigns.admin.editall"))
 						{
 							player.SendErrorMessage("This sign is not yours.");
 							break;
@@ -352,6 +373,7 @@ namespace InfiniteSigns
 							writer.Write((short)x);
 							writer.Write((short)y);
 							writer.Write(sign.Text);
+                            writer.Write((byte)player.TPlayer.whoAmI);
 
 							short length = (short)writer.BaseStream.Position;
 							writer.BaseStream.Position = 0;
@@ -458,7 +480,7 @@ namespace InfiniteSigns
 			{
 				Console.WriteLine("IsRegion: {0}", sign.IsRegion);
 				bool isFree = String.IsNullOrEmpty(sign.Account);
-				bool isOwner = sign.Account == player.UserAccountName || player.Group.HasPermission("infsigns.admin.editall");
+				bool isOwner = sign.Account == player.User.Name || player.Group.HasPermission("infsigns.admin.editall");
 				bool isRegion = sign.IsRegion && TShock.Regions.CanBuild(x, y, player);
 				if (!isFree && !isOwner && !isRegion)
 				{
@@ -467,7 +489,7 @@ namespace InfiniteSigns
 						player.SendErrorMessage("This sign is protected.");
 						return;
 					}
-					else if (TShock.Utils.HashPassword(info.Password) != sign.HashedPassword)
+					else if (BCrypt.Net.BCrypt.HashPassword(info.Password) != sign.HashedPassword)
 					{
 						player.SendErrorMessage("This sign is password protected.");
 						return;
@@ -508,7 +530,7 @@ namespace InfiniteSigns
 		{
 			TSPlayer player = TShock.Players[plr];
 			Database.Query("INSERT INTO Signs (X, Y, Account, Text, WorldID) VALUES (@0, @1, @2, '', @3)",
-				x, y, (player.IsLoggedIn && player.Group.HasPermission("infsigns.sign.protect")) ? player.UserAccountName : null, Main.worldID);
+				x, y, (player.IsLoggedIn && player.Group.HasPermission("infsigns.sign.protect")) ? player.User.Name : null, Main.worldID);
 			Main.sign[999] = null;
 		}
 		bool TileValid(int x, int y)
@@ -533,7 +555,7 @@ namespace InfiniteSigns
 			}
 			if (sign != null)
 			{
-				if (sign.Account != TShock.Players[plr].UserAccountName && sign.Account != "" &&
+				if (sign.Account != TShock.Players[plr].User.Name && sign.Account != "" &&
 					!TShock.Players[plr].Group.HasPermission("infsigns.admin.editall"))
 				{
 					return false;
@@ -557,8 +579,8 @@ namespace InfiniteSigns
 						}
 					}
 					e.Player.SendSuccessMessage("Converted {0} sign{1}.", converted, converted == 1 ? "" : "s");
-					if (converted > 0)
-						WorldFile.saveWorld();
+                    if (converted > 0)
+                        TShock.Utils.SaveWorld();
 				});
 		}
 		void Deselect(CommandArgs e)
@@ -658,8 +680,8 @@ namespace InfiniteSigns
 
 				e.Player.SendSuccessMessage("Pruned {0} corrupted sign{1}.", corrupted, corrupted == 1 ? "" : "s");
 				if (corrupted + empty > 0)
-					WorldFile.saveWorld();
-			});
+                    TShock.Utils.SaveWorld();
+            });
 		}
 		void Public(CommandArgs e)
 		{
@@ -699,8 +721,8 @@ namespace InfiniteSigns
 				Database.Query("DELETE FROM Signs WHERE WorldID = @0", Main.worldID);
 				e.Player.SendSuccessMessage("Reverse converted {0} signs.", i);
 				if (i > 0)
-					WorldFile.saveWorld();
-			});
+                    TShock.Utils.SaveWorld();
+            });
 		}
 		void Unlock(CommandArgs e)
 		{
