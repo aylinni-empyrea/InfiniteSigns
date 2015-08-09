@@ -15,7 +15,7 @@ using TShockAPI.DB;
 
 namespace InfiniteSigns
 {
-    [ApiVersion(1, 20)]
+    [ApiVersion(1, 21)]
 	public class InfiniteSigns : TerrariaPlugin
 	{
 		public IDbConnection Database;
