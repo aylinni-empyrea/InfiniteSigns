@@ -1,4 +1,8 @@
-﻿using Mono.Data.Sqlite;
+﻿/*
+ * Credit to MarioE for original plugin.
+ */
+
+using Mono.Data.Sqlite;
 using MySql.Data.MySqlClient;
 using System;
 using System.Collections.Generic;
@@ -15,7 +19,7 @@ using TShockAPI.DB;
 
 namespace InfiniteSigns
 {
-    [ApiVersion(1, 21)]
+    [ApiVersion(1, 22)]
 	public class InfiniteSigns : TerrariaPlugin
 	{
 		public IDbConnection Database;
@@ -23,7 +27,7 @@ namespace InfiniteSigns
         
 		public override string Author
 		{
-			get { return "MarioE"; }
+			get { return "Maintained by Zaicon"; }
 		}
 		public override string Description
 		{
