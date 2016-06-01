@@ -1,12 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Terraria;
+﻿using Terraria;
 
 namespace InfiniteSigns
 {
-	public class Sign
+    public class Sign
 	{
 		public string Account = "";
 		public SignFlags Flags;

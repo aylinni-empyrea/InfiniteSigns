@@ -19,7 +19,7 @@ using TShockAPI.DB;
 
 namespace InfiniteSigns
 {
-    [ApiVersion(1, 22)]
+    [ApiVersion(1, 23)]
 	public class InfiniteSigns : TerrariaPlugin
 	{
 		public IDbConnection Database;
@@ -134,22 +134,6 @@ namespace InfiniteSigns
 										e.Handled = true;
 									}
 								}
-                                //Uses placeobject instead
-
-								//else if (action == 1 && (type == 55 || type == 85))
-								//{
-								//	if (TShock.Regions.CanBuild(x, y, TShock.Players[e.Msg.whoAmI]))
-								//	{
-								//		WorldGen.PlaceSign(x, y, type);
-								//		NetMessage.SendData(17, -1, e.Msg.whoAmI, "", 1, x, y, type);
-								//		if (Main.tile[x, y].frameY != 0)
-								//			y--;
-								//		if (Main.tile[x, y].frameX % 36 != 0)
-								//			x--;
-								//		Task.Factory.StartNew(() => PlaceSign(x, y, e.Msg.whoAmI));
-								//		e.Handled = true;
-								//	}
-								//}
 							}
 							break;
 					}
@@ -295,7 +279,7 @@ namespace InfiniteSigns
 						player.SendInfoMessage("X: {0} Y: {1} Account: {2} Region: {3}", x, y, sign.Account ?? "N/A", sign.IsRegion);
 						break;
 					case SignAction.Protect:
-						if (!String.IsNullOrEmpty(sign.Account))
+						if (!string.IsNullOrEmpty(sign.Account))
 						{
 							player.SendErrorMessage("This sign is protected.");
 							break;
@@ -304,7 +288,7 @@ namespace InfiniteSigns
 						player.SendInfoMessage("This sign is now protected.");
 						break;
 					case SignAction.SetPassword:
-						if (String.IsNullOrEmpty(sign.Account))
+						if (string.IsNullOrEmpty(sign.Account))
 						{
 							player.SendErrorMessage("This sign is not protected.");
 							break;
@@ -314,7 +298,7 @@ namespace InfiniteSigns
 							player.SendErrorMessage("This sign is not yours.");
 							break;
 						}
-						if (String.Equals(info.Password, "remove", StringComparison.CurrentCultureIgnoreCase))
+						if (string.Equals(info.Password, "remove", StringComparison.CurrentCultureIgnoreCase))
 						{
 							Database.Query("UPDATE Signs SET Password = NULL WHERE ID = @0", sign.ID);
 							player.SendSuccessMessage("This sign is no longer password protected.");
@@ -326,7 +310,7 @@ namespace InfiniteSigns
 						}
 						break;
 					case SignAction.TogglePublic:
-						if (String.IsNullOrEmpty(sign.Account))
+						if (string.IsNullOrEmpty(sign.Account))
 						{
 							player.SendErrorMessage("This sign is not protected.");
 							break;
@@ -340,7 +324,7 @@ namespace InfiniteSigns
 						player.SendInfoMessage("This sign is no{0} public.", sign.IsRegion ? " longer" : "w");
 						break;
 					case SignAction.ToggleRegion:
-						if (String.IsNullOrEmpty(sign.Account))
+						if (string.IsNullOrEmpty(sign.Account))
 						{
 							player.SendErrorMessage("This sign is not protected.");
 							break;
@@ -354,7 +338,7 @@ namespace InfiniteSigns
 						player.SendInfoMessage("This sign is no{0} region shared.", sign.IsRegion ? " longer" : "w");
 						break;
 					case SignAction.Unprotect:
-						if (String.IsNullOrEmpty(sign.Account))
+						if (string.IsNullOrEmpty(sign.Account))
 						{
 							player.SendErrorMessage("This sign is not protected.");
 							break;
@@ -483,12 +467,12 @@ namespace InfiniteSigns
 			if (sign != null)
 			{
 				Console.WriteLine("IsRegion: {0}", sign.IsRegion);
-				bool isFree = String.IsNullOrEmpty(sign.Account);
+				bool isFree = string.IsNullOrEmpty(sign.Account);
 				bool isOwner = sign.Account == player.User.Name || player.Group.HasPermission("infsigns.admin.editall");
 				bool isRegion = sign.IsRegion && TShock.Regions.CanBuild(x, y, player);
 				if (!isFree && !isOwner && !isRegion)
 				{
-					if (String.IsNullOrEmpty(sign.HashedPassword))
+					if (string.IsNullOrEmpty(sign.HashedPassword))
 					{
 						player.SendErrorMessage("This sign is protected.");
 						return;
@@ -642,7 +626,7 @@ namespace InfiniteSigns
 							{
 								if (reader.Read())
 								{
-									if (String.IsNullOrWhiteSpace(reader.Get<string>("Text")))
+									if (string.IsNullOrWhiteSpace(reader.Get<string>("Text")))
 									{
 										empty++;
 										WorldGen.KillTile(x, y);
