@@ -2,6 +2,7 @@
  * Credit to MarioE for original plugin.
  */
 
+using Microsoft.Xna.Framework;
 using Mono.Data.Sqlite;
 using MySql.Data.MySqlClient;
 using System;
@@ -19,7 +20,7 @@ using TShockAPI.DB;
 
 namespace InfiniteSigns
 {
-    [ApiVersion(1, 25)]
+    [ApiVersion(1, 26)]
 	public class InfiniteSigns : TerrariaPlugin
 	{
 		public IDbConnection Database;
@@ -700,10 +701,12 @@ namespace InfiniteSigns
 				{
 					while (reader.Read())
 					{
-						var sign = (Main.sign[i++] = new Terraria.Sign());
-						sign.text = reader.Get<string>("Text");
-						sign.x = reader.Get<int>("X");
-						sign.y = reader.Get<int>("Y");
+						var sign = (Main.sign[i++] = new Terraria.Sign()
+						{
+							text = reader.Get<string>("Text"),
+							x = reader.Get<int>("X"),
+							y = reader.Get<int>("Y")
+						});
 					}
 				}
 				Database.Query("DELETE FROM Signs WHERE WorldID = @0", Main.worldID);

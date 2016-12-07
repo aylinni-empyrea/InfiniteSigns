@@ -1,9 +1,0 @@
-*/bin/*
-*/obj/*
-
-*.suo
-*.sdf
-*.opensdf
-*.cache
-*.pdb
-*.csproj.user
