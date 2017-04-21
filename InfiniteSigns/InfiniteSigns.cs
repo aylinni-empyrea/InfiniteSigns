@@ -11,15 +11,17 @@ using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Threading.Tasks;
+using Microsoft.Xna.Framework;
 using Terraria;
 using Terraria.ID;
+using Terraria.Localization;
 using TerrariaApi.Server;
 using TShockAPI;
 using TShockAPI.DB;
 
 namespace InfiniteSigns
 {
-    [ApiVersion(1, 25)]
+    [ApiVersion(2, 1)]
 	public class InfiniteSigns : TerrariaPlugin
 	{
 		public IDbConnection Database;
@@ -87,7 +89,7 @@ namespace InfiniteSigns
                                     if (TShock.Regions.CanBuild(x, y, TShock.Players[e.Msg.whoAmI]))
                                     {
                                         WorldGen.PlaceSign(x, y, type);
-                                        NetMessage.SendData(79, -1, e.Msg.whoAmI, "", 1, x, y, type);
+                                        NetMessage.SendData(79, -1, e.Msg.whoAmI, NetworkText.Empty, 1, x, y, type);
                                         if (Main.tile[x, y].frameY != 0)
                                             y--;
                                         if (Main.tile[x, y].frameX % 36 != 0)
